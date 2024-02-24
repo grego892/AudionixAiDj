@@ -1,0 +1,127 @@
+﻿@page "/livestudio"
+@rendermode InteractiveServer
+@using AudionixAiDj.Data
+@using NAudio.Wave;
+
+
+<PageTitle>Live Studio</PageTitle>
+
+<MudPaper Elevation="15">
+<MudToolBar Class="pa-4" Dense="true">
+    <MudButton Variant="Variant.Text" OnClick="LoadTodaysLog" Elevation="15">Open Todays Log</MudButton>
+</MudToolBar>
+</MudPaper>
+
+
+
+<MudPaper Class="pl-4">
+    <MudDataGrid
+        Items="@Log"
+        T="ProgramLogItem"
+        RowStyleFunc="@_rowStyleFunc"
+        SortMode="SortMode.None"
+        FixedHeader="true"
+        Virtualize="true"
+        Dense="true"
+        Height="90vh">
+            <Columns>
+                <PropertyColumn Property="x => x.FileName" />
+                <TemplateColumn>
+                    <CellTemplate>
+                    @if (context.Item.LogPlayStatus == ProgramLogItem.PlayStatus.Playing)
+                        {
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="(() => OnButtonPlayClick(context.Item.LogPosition))">Stop</MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="(() => OnButtonPlayClick(context.Item.LogPosition))">Play</MudButton>
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+    </MudDataGrid>
+</MudPaper>
+
+@code{
+    // private string TEMPORARYLOGPATH = AppDomain.CurrentDomain.BaseDirectory + "Data\\log.xml";
+
+    public IEnumerable<ProgramLogItem> Log = new List<ProgramLogItem>();
+    private int CurrentLogIndex = 0;
+
+    private WaveOutEvent? outputDevice;
+    private AudioFileReader? audioFile;
+
+    public ProgramLogItem.Category category { get; set; }
+
+    private void LoadTodaysLog()
+    {
+        Log = LoadLog();
+    }
+
+    private Func<ProgramLogItem, int, string> _rowStyleFunc => (x, i) =>
+    {
+        switch (x.LogCategory.ToString())
+        {
+            case "Music":
+                return ($"background: { Colors.Indigo.Lighten1 }; ");
+            case "Read":
+                return ($"background: {Colors.Blue.Lighten1}; ");
+            case "Macro":
+                return ($"background: {Colors.BlueGrey.Lighten1}; ");
+            case "SPOT":
+                return ($"background: {Colors.Green.Lighten1}; ");
+            default:
+                return $"background: {Colors.Indigo.Lighten1}; ";
+        }
+    };
+
+    public IEnumerable<ProgramLogItem> LoadLog()
+    {
+        List<ProgramLogItem> log = new List<ProgramLogItem>();
+        log.Add(new ProgramLogItem { LogPosition = 1, FileName = "Alan Jackson - Chattahoochee.mp3", LogCategory = ProgramLogItem.Category.Music, LogPlayStatus = ProgramLogItem.PlayStatus.NotPlayed });
+        log.Add(new ProgramLogItem { LogPosition = 2, FileName = "Elvis Presley - Hound Dog.mp3", LogCategory = ProgramLogItem.Category.Music, LogPlayStatus = ProgramLogItem.PlayStatus.NotPlayed });
+        log.Add(new ProgramLogItem { LogPosition = 3, FileName = "Jerry Lee Lewis - Great Balls Of Fire.mp3", LogCategory = ProgramLogItem.Category.Music, LogPlayStatus = ProgramLogItem.PlayStatus.NotPlayed });
+        log.Add(new ProgramLogItem { LogPosition = 4, FileName = "Queen - We Will Rock You.mp3", LogCategory = ProgramLogItem.Category.Music, LogPlayStatus = ProgramLogItem.PlayStatus.NotPlayed });
+        log.Add(new ProgramLogItem { LogPosition = 5, FileName = "Willie Nelson - On The Road Again.mp3", LogCategory = ProgramLogItem.Category.Music, LogPlayStatus = ProgramLogItem.PlayStatus.NotPlayed });
+        return log;
+    }
+
+    private async Task OnButtonPlayClick(int logposition)
+    {
+
+            
+   
+
+
+        if (outputDevice == null)
+        {
+            outputDevice = new WaveOutEvent();
+            outputDevice.PlaybackStopped += OnPlaybackStopped;
+        }
+        if (audioFile == null)
+        {
+            string audioPath = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Data", "Audio", Log.ElementAt(logposition - 1).FileName.ToString());
+            audioFile = new AudioFileReader(audioPath);
+            outputDevice.Init(audioFile);
+        }
+        await Task.Run(() => outputDevice.Play());
+        
+        Log.ElementAt(logposition - 1).LogPlayStatus = ProgramLogItem.PlayStatus.Playing;
+
+    }
+
+    private void OnPlaybackStopped(object? sender, StoppedEventArgs args)
+    {
+        outputDevice?.Dispose();
+        outputDevice = null;
+        audioFile?.Dispose();
+        audioFile = null;
+
+        if (CurrentLogIndex < Log.Count() - 1)
+        {
+            Log.ElementAt(CurrentLogIndex).LogPlayStatus = ProgramLogItem.PlayStatus.Played;
+            CurrentLogIndex++;
+            OnButtonPlayClick(CurrentLogIndex);
+        }
+    }
+}

@@ -1,0 +1,40 @@
+﻿@inherits LayoutComponentBase
+
+<MudThemeProvider @ref="@_mudThemeProvider" @bind-IsDarkMode="@_isDarkMode" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+
+    <MudAppBar>
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudImage Src="Images/NavbarLogo2.svg" Width="200" Height="60" />
+        <MudSpacer />
+        @if (isDatabaseMissing)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Elevation="24">NOT CONNECTED TO DATABASE</MudAlert>
+        }
+        <MudSwitch @bind-value="@_isDarkMode" Color="Color.Primary" Class="ma-4" T="bool" Label="Light/Dark Mode" />
+        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
+    </MudAppBar>
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Width="170px">
+        <NavMenu />
+    </MudDrawer>
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    bool _drawerOpen = true;
+    private MudTheme _theme = new();
+    private MudThemeProvider? _mudThemeProvider;
+    private bool _isDarkMode = true;
+
+    public bool isDatabaseMissing = false;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}
